@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Tax Advisor | TaxiFy</title>
+    <meta name="description" content="Get personalized AI-powered tax saving and investment advice from TaxiFy.">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="bg-mesh"></div>
+    <div class="page-wrapper top-aligned">
+        <div class="glass-card wide">
+            <div class="brand">
+                <div class="brand-logo" style="font-size: 1.6rem;">
+                    <span class="logo-icon">⚡</span>TaxiFy
+                </div>
+                <p class="brand-tagline">AI Tax Advisor</p>
+            </div>
+
+            <div class="chat-container" id="convo-log">
+                {% if conversation %}
+                    {% for turn in conversation %}
+                        {% if turn.role == 'user' %}
+                            <div class="chat-bubble user">
+                                <div class="chat-label">You</div>
+                                {{ turn.content_html|safe }}
+                            </div>
+                        {% elif turn.role == 'advisor' %}
+                            <div class="chat-bubble advisor">
+                                <div class="chat-label">AI Advisor</div>
+                                {{ turn.content_html|safe }}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-chat">
+                        Your conversation will appear here. The AI advisor is analyzing your tax data...
+                    </div>
+                {% endif %}
+            </div>
+
+            <form class="chat-input-row" action="/advisor" method="post" id="chat-form">
+                <input type="hidden" name="session_id" value="{{ session_id }}">
+                <input class="form-input" type="text" name="user_message" placeholder="Ask about tax savings, investments, deductions..." required autocomplete="off">
+                <button class="btn btn-primary" type="submit" id="send-btn">
+                    Send
+                </button>
+            </form>
+            <a class="link" href="/" style="display: inline-block; margin-top: 1rem;">← Back to Home</a>
+        </div>
+    </div>
+    <script>
+        // Auto-scroll to bottom
+        const log = document.getElementById('convo-log');
+        if (log) log.scrollTop = log.scrollHeight;
+
+        // Loading state on submit
+        document.getElementById('chat-form').addEventListener('submit', function() {
+            const btn = document.getElementById('send-btn');
+            btn.innerHTML = '<span class="spinner"></span>';
+            btn.disabled = true;
+        });
+    </script>
+</body>
+</html>

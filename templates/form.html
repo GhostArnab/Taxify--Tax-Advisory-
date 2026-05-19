@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Financial Data | TaxiFy</title>
+    <meta name="description" content="Review and edit your AI-extracted financial data before calculating taxes.">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="bg-mesh"></div>
+    <div class="page-wrapper">
+        <div class="glass-card wide">
+            <div class="brand">
+                <div class="brand-logo" style="font-size: 1.6rem;">
+                    <span class="logo-icon">⚡</span>TaxiFy
+                </div>
+            </div>
+            <h1 class="section-title">Review Your Financial Data</h1>
+            <p class="section-subtitle">AI-extracted values — verify and adjust if needed</p>
+            <form action="/calculate" method="post" id="calc-form">
+                <input type="hidden" name="session_id" value="{{ session_id }}">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Gross Salary (₹)</label>
+                        <input class="form-input" type="number" name="gross_salary" value="{{ data.gross_salary }}" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Basic Salary (₹)</label>
+                        <input class="form-input" type="number" name="basic_salary" value="{{ data.basic_salary }}" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">HRA Received (₹)</label>
+                        <input class="form-input" type="number" name="hra_received" value="{{ data.hra_received }}" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Rent Paid (₹)</label>
+                        <input class="form-input" type="number" name="rent_paid" value="{{ data.rent_paid }}" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">80C Investments (₹)</label>
+                        <input class="form-input" type="number" name="deduction_80c" value="{{ data.deduction_80c }}" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">80D Medical Insurance (₹)</label>
+                        <input class="form-input" type="number" name="deduction_80d" value="{{ data.deduction_80d }}" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Standard Deduction (₹)</label>
+                        <input class="form-input" type="number" name="standard_deduction" value="{{ data.standard_deduction }}" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Professional Tax (₹)</label>
+                        <input class="form-input" type="number" name="professional_tax" value="{{ data.professional_tax }}" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">TDS (₹)</label>
+                        <input class="form-input" type="number" name="tds" value="{{ data.tds }}" min="0" step="0.01" required>
+                    </div>
+                </div>
+                <div class="divider"></div>
+                <label class="form-label" style="margin-bottom: 0.6rem;">Select Tax Regime</label>
+                <div class="radio-group">
+                    <div class="radio-option">
+                        <input type="radio" id="old" name="regime" value="old" required>
+                        <label for="old">Old Regime</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="new" name="regime" value="new" checked required>
+                        <label for="new">New Regime</label>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-full" type="submit" id="calc-btn" style="margin-top: 0.8rem;">
+                    Calculate Tax
+                    <span style="font-size: 1.1rem;">→</span>
+                </button>
+            </form>
+            <a class="link" href="/upload" style="display: inline-block; margin-top: 1.2rem;">← Re-upload document</a>
+        </div>
+    </div>
+    <script>
+        document.getElementById('calc-form').addEventListener('submit', function() {
+            const btn = document.getElementById('calc-btn');
+            btn.innerHTML = '<span class="spinner"></span> Calculating...';
+            btn.disabled = true;
+        });
+    </script>
+</body>
+</html>

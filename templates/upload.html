@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Document | TaxiFy</title>
+    <meta name="description" content="Upload your salary slip or Form 16 PDF to get AI-powered tax calculations and advice.">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="bg-mesh"></div>
+    <div class="page-wrapper">
+        <div class="glass-card" style="text-align: center;">
+            <div class="brand">
+                <div class="brand-logo">
+                    <span class="logo-icon">⚡</span>TaxiFy
+                </div>
+            </div>
+            <h1 class="section-title">Upload Your Document</h1>
+            <p class="section-subtitle">Salary slip or Form 16 — PDF, PNG, or JPG</p>
+            <form action="/upload" method="post" enctype="multipart/form-data" id="upload-form">
+                <div class="upload-zone" id="upload-zone">
+                    <span class="upload-icon">📁</span>
+                    <div class="upload-text">
+                        Drag & drop your file here<br>
+                        or <strong>click to browse</strong>
+                    </div>
+                    <div class="upload-hint">Supported: PDF, PNG, JPG (max 10MB)</div>
+                    <input type="file" name="file" id="file-input" accept="application/pdf,image/png,image/jpeg,image/jpg" required>
+                    <div class="file-name" id="file-name"></div>
+                </div>
+                <button class="btn btn-primary btn-full" type="submit" id="upload-btn" disabled>
+                    Upload & Extract
+                    <span style="font-size: 1.1rem;">→</span>
+                </button>
+            </form>
+            <a class="link" href="/" style="display: inline-block; margin-top: 1.2rem;">← Back to Home</a>
+        </div>
+    </div>
+    <script>
+        const zone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileName = document.getElementById('file-name');
+        const uploadBtn = document.getElementById('upload-btn');
+
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                fileName.textContent = '✅ ' + this.files[0].name;
+                fileName.style.display = 'block';
+                uploadBtn.disabled = false;
+            }
+        });
+
+        zone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            zone.classList.add('dragover');
+        });
+
+        zone.addEventListener('dragleave', () => {
+            zone.classList.remove('dragover');
+        });
+
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            zone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                fileName.textContent = '✅ ' + e.dataTransfer.files[0].name;
+                fileName.style.display = 'block';
+                uploadBtn.disabled = false;
+            }
+        });
+
+        // Show loading state on submit
+        document.getElementById('upload-form').addEventListener('submit', function() {
+            uploadBtn.innerHTML = '<span class="spinner"></span> Extracting with AI...';
+            uploadBtn.disabled = true;
+        });
+    </script>
+</body>
+</html>

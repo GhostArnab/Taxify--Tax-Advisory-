@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tax Comparison Results | TaxiFy</title>
+    <meta name="description" content="Compare your tax liability under Old and New tax regimes with TaxiFy's AI-powered analysis.">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="bg-mesh"></div>
+    <div class="page-wrapper">
+        <div class="glass-card wide" style="text-align: center;">
+            <div class="brand">
+                <div class="brand-logo" style="font-size: 1.6rem;">
+                    <span class="logo-icon">⚡</span>TaxiFy
+                </div>
+            </div>
+            <h1 class="section-title">Your Tax Comparison</h1>
+            <p class="section-subtitle">Side-by-side analysis of both tax regimes</p>
+
+            <div class="results-grid">
+                <div class="result-card {% if selected_regime == 'old' %}selected{% endif %} {% if best_regime == 'old' %}best{% endif %}">
+                    <div class="result-regime">Old Regime</div>
+                    <div class="result-amount">₹{{ '{:,.2f}'.format(tax_old) }}</div>
+                    {% if selected_regime == 'old' %}
+                        <span class="badge badge-selected">Your Choice</span>
+                    {% endif %}
+                    {% if best_regime == 'old' %}
+                        <span class="badge badge-best">✓ Best for You</span>
+                    {% endif %}
+                </div>
+                <div class="result-card {% if selected_regime == 'new' %}selected{% endif %} {% if best_regime == 'new' %}best{% endif %}">
+                    <div class="result-regime">New Regime</div>
+                    <div class="result-amount">₹{{ '{:,.2f}'.format(tax_new) }}</div>
+                    {% if selected_regime == 'new' %}
+                        <span class="badge badge-selected">Your Choice</span>
+                    {% endif %}
+                    {% if best_regime == 'new' %}
+                        <span class="badge badge-best">✓ Best for You</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if tax_old != tax_new %}
+            <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--radius-md); padding: 1rem; margin: 1rem 0;">
+                <p style="color: var(--accent-green); font-weight: 600; font-size: 0.95rem; margin: 0;">
+                    💡 You could save ₹{{ '{:,.2f}'.format((tax_old - tax_new)|abs) }} by choosing the {{ best_regime | capitalize }} Regime
+                </p>
+            </div>
+            {% endif %}
+
+            <div class="divider"></div>
+
+            <div class="actions-row">
+                <form action="/upload" method="get" style="flex: 1;">
+                    <button class="btn btn-secondary btn-full" type="submit">
+                        ↺ Start Over
+                    </button>
+                </form>
+                <form action="/advisor" method="get" style="flex: 1;">
+                    <input type="hidden" name="session_id" value="{{ data.session_id }}">
+                    <button class="btn btn-primary btn-full" type="submit">
+                        🤖 Get AI Advice
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
