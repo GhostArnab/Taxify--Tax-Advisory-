@@ -44,6 +44,43 @@ CREATE TABLE IF NOT EXISTS ConversationLog (
 CREATE INDEX IF NOT EXISTS idx_conversationlog_session ON ConversationLog(session_id);
 '''
 
+# --- Row Level Security ---
+# Enable RLS and deny all access via the public API (anon/authenticated roles).
+# The backend connects with the postgres (superuser) role via DB_URL,
+# which bypasses RLS, so app functionality is unaffected.
+enable_rls = '''
+ALTER TABLE public.userfinancials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.taxcomparison ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.conversationlog ENABLE ROW LEVEL SECURITY;
+'''
+
+rls_policies = '''
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE tablename = 'userfinancials' AND policyname = 'Deny anon access on userfinancials'
+    ) THEN
+        CREATE POLICY "Deny anon access on userfinancials"
+            ON public.userfinancials FOR ALL USING (false);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE tablename = 'taxcomparison' AND policyname = 'Deny anon access on taxcomparison'
+    ) THEN
+        CREATE POLICY "Deny anon access on taxcomparison"
+            ON public.taxcomparison FOR ALL USING (false);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE tablename = 'conversationlog' AND policyname = 'Deny anon access on conversationlog'
+    ) THEN
+        CREATE POLICY "Deny anon access on conversationlog"
+            ON public.conversationlog FOR ALL USING (false);
+    END IF;
+END
+$$;
+'''
+
 def main():
     try:
         conn = psycopg2.connect(DB_URL)
@@ -51,6 +88,8 @@ def main():
         cur.execute(userfinancials_table)
         cur.execute(taxcomparison_table)
         cur.execute(conversationlog_table)
+        cur.execute(enable_rls)
+        cur.execute(rls_policies)
         conn.commit()
         cur.close()
         conn.close()

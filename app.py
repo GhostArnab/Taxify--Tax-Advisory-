@@ -68,9 +68,27 @@ def call_gemini_api(prompt):
     response = requests.post(url, headers=headers, data=json.dumps(data))
     if response.status_code == 200:
         try:
-            return response.json()['candidates'][0]['content']['parts'][0]['text']
+            result = response.json()
+            # Gemini 2.5 Flash may return multiple parts (thinking + answer).
+            # The actual answer is the last text part that is NOT a thought.
+            parts = result['candidates'][0]['content']['parts']
+            answer = None
+            for part in parts:
+                if part.get('thought'):
+                    continue  # Skip thinking parts
+                if 'text' in part:
+                    answer = part['text']
+            # Fallback: if no non-thought part found, use the last part with text
+            if answer is None:
+                for part in reversed(parts):
+                    if 'text' in part:
+                        answer = part['text']
+                        break
+            print(f'[DEBUG] Gemini raw answer (first 500 chars): {answer[:500] if answer else "None"}')
+            return answer
         except Exception as e:
             print('[ERROR] Could not parse Gemini response:', e)
+            print('[DEBUG] Full response JSON:', response.text[:1000])
             return None
     else:
         print(f'[ERROR] Gemini API call failed. Status: {response.status_code}, Response: {response.text}')
@@ -78,22 +96,57 @@ def call_gemini_api(prompt):
 
 def build_gemini_prompt(raw_text):
     return (
-        "Extract the following fields from the salary slip text. "
-        "If the slip is for a single month, annualize all monthly values (multiply by 12). "
-        "Return a JSON object with these keys: gross_salary, basic_salary, hra_received, rent_paid, "
-        "deduction_80c, deduction_80d, standard_deduction, professional_tax, tds. "
-        "If a value is missing, set it to 0.\n\n"
+        "You are an expert Indian payroll analyst. Extract financial data from the salary slip text below.\n\n"
+        "RULES:\n"
+        "1. If the slip is for a single month, ANNUALIZE all values (multiply by 12).\n"
+        "2. Return ONLY a valid JSON object — no markdown, no explanation.\n"
+        "3. If a value is not found, set it to 0.\n\n"
+        "FIELD MAPPING — use these rules to map salary slip line items:\n"
+        "- gross_salary: Total earnings / Gross Salary / Total Pay (sum of all earning components).\n"
+        "- basic_salary: Basic Pay / Basic Salary.\n"
+        "- hra_received: House Rent Allowance / HRA.\n"
+        "- rent_paid: House Rent / Rent Paid / Rent Deduction / HRA deduction from employee side. "
+        "Look for any rent-related deduction or declared rent amount. If the slip shows an 'HRA exemption' or 'Rent Paid' field, use that value.\n"
+        "- deduction_80c: Section 80C deductions — EPF / PF (Provident Fund) employee contribution, PPF, ELSS, LIC, NSC, or any line item mentioning 80C. "
+        "If only PF/EPF employee contribution is shown, use that.\n"
+        "- deduction_80d: Section 80D / Medical Insurance Premium / Health Insurance / Mediclaim. "
+        "Also look for 'Medical Allowance', 'Medical Reimbursement', or any medical-related benefit or deduction.\n"
+        "- standard_deduction: Standard Deduction (₹75,000 for FY 2024-25 / AY 2025-26 under new regime, ₹50,000 under old regime). If not explicitly stated, set to 0.\n"
+        "- professional_tax: Professional Tax / PT / Employment Tax.\n"
+        "- tds: TDS / Tax Deducted at Source / Income Tax / IT deduction.\n\n"
+        "JSON keys: gross_salary, basic_salary, hra_received, rent_paid, deduction_80c, deduction_80d, standard_deduction, professional_tax, tds\n\n"
         f"Salary Slip Text:\n{raw_text}\n\nJSON:"
     )
 
 def clean_gemini_json_response(response_text):
+    """Extract a JSON object from Gemini's response, handling thinking text,
+    markdown code blocks, and other surrounding content."""
+    import re
     if not response_text:
         return ''
-    # Remove triple backticks and language tags
-    cleaned = response_text.strip()
+    text = response_text.strip()
+
+    # Strategy 1: Find JSON inside a ```json ... ``` code block
+    match = re.search(r'```json\s*\n?(.*?)\n?\s*```', text, re.DOTALL | re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+
+    # Strategy 2: Find JSON inside any ``` ... ``` code block
+    match = re.search(r'```\s*\n?(.*?)\n?\s*```', text, re.DOTALL)
+    if match:
+        candidate = match.group(1).strip()
+        if candidate.startswith('{'):
+            return candidate
+
+    # Strategy 3: Find a bare JSON object { ... } anywhere in the text
+    match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', text, re.DOTALL)
+    if match:
+        return match.group(0).strip()
+
+    # Fallback: strip backticks from edges
+    cleaned = text
     if cleaned.startswith('```'):
         cleaned = cleaned.lstrip('`')
-        # Remove language tag if present
         if cleaned.lower().startswith('json'):
             cleaned = cleaned[4:]
         cleaned = cleaned.strip()
