@@ -1,4 +1,5 @@
 import os
+import sys
 from flask import Flask, render_template, request, redirect, url_for, flash
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
@@ -14,6 +15,21 @@ import psycopg2
 from datetime import datetime
 from decimal import Decimal
 import markdown2
+
+# Override default print to prevent UnicodeEncodeError on Windows terminals
+_original_print = print
+def safe_print(*args, **kwargs):
+    encoding = sys.stdout.encoding or 'utf-8'
+    safe_args = []
+    for arg in args:
+        if isinstance(arg, str):
+            # Encode to the target console encoding and replace unsupported characters
+            safe_args.append(arg.encode(encoding, errors='replace').decode(encoding))
+        else:
+            safe_args.append(arg)
+    _original_print(*safe_args, **kwargs)
+
+print = safe_print
 
 load_dotenv()
 
@@ -111,7 +127,7 @@ def build_gemini_prompt(raw_text):
         "If only PF/EPF employee contribution is shown, use that.\n"
         "- deduction_80d: Section 80D / Medical Insurance Premium / Health Insurance / Mediclaim. "
         "Also look for 'Medical Allowance', 'Medical Reimbursement', or any medical-related benefit or deduction.\n"
-        "- standard_deduction: Standard Deduction (₹75,000 for FY 2024-25 / AY 2025-26 under new regime, ₹50,000 under old regime). If not explicitly stated, set to 0.\n"
+        "- standard_deduction: Standard Deduction (Rs. 75,000 for FY 2024-25 / AY 2025-26 under new regime, Rs. 50,000 under old regime). If not explicitly stated, set to 0.\n"
         "- professional_tax: Professional Tax / PT / Employment Tax.\n"
         "- tds: TDS / Tax Deducted at Source / Income Tax / IT deduction.\n\n"
         "JSON keys: gross_salary, basic_salary, hra_received, rent_paid, deduction_80c, deduction_80d, standard_deduction, professional_tax, tds\n\n"
@@ -208,8 +224,8 @@ You are a thoughtful, step-by-step tax advisor for Indian salaried individuals. 
 
 Here is the user's financial data and tax results:
 {json.dumps(user_data_clean, indent=2)}
-Old Regime Tax: ₹{tax_old}
-New Regime Tax: ₹{tax_new}
+Old Regime Tax: Rs.{tax_old}
+New Regime Tax: Rs.{tax_new}
 User Selected Regime: {selected_regime}
 
 Conversation so far:
